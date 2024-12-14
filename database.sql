@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS Tari (
     id SERIAL NOT NULL,
-    nume_tara VARCHAR2(100) NOT NULL,
+    nume_tara VARCHAR(100) NOT NULL,
     latitudine DOUBLE PRECISION NOT NULL,
     longitudine DOUBLE PRECISION NOT NULL,
     PRIMARY KEY (id),
@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS Tari (
 CREATE TABLE IF NOT EXISTS Orase (
     id SERIAL NOT NULL,
     id_tara INT NOT NULL,
-    nume_oras VARCHAR2(100) NOT NULL,
+    nume_oras VARCHAR(100) NOT NULL,
     latitudine DOUBLE PRECISION NOT NULL,
     longitudine DOUBLE PRECISION NOT NULL,
     PRIMARY KEY (id),
