@@ -23,7 +23,8 @@ def post_countries():
         db_conn, db_cursor = connect_db()
         db_cursor.execute("INSERT INTO Tari (nume_tara, latitudine, longitudine) VALUES (%s, %s, %s)", (body["nume"], body["lat"], body["lon"]))
         db_conn.commit()
-        id = db_cursor.lastrowid
+        db_cursor.execute("SELECT id FROM Tari where nume_tara = %s", (body["nume"],))
+        id = db_cursor.fetchone()[0]
         db_cursor.close()
         db_conn.close()
         return jsonify({"id": id}), 201
@@ -33,11 +34,11 @@ def post_countries():
 @app.route("/api/countries", methods=["GET"])
 def get_countries():
     db_conn, db_cursor = connect_db()
-    db_cursor.execute("SELECT * FROM countries")
+    db_cursor.execute("SELECT * FROM Tari")
     countries = db_cursor.fetchall()
     db_cursor.close()
     db_conn.close()
-    return jsonify([{"id": country[0], "name": country[1], "lat": country[2], "lon": country[3]} for country in countries]), 200
+    return jsonify([{"id": country[0], "nume": country[1], "lat": country[2], "lon": country[3]} for country in countries]), 200
 
 if __name__ == '__main__':
     app.run('0.0.0.0', port=os.getenv("PORT"), debug=True)
