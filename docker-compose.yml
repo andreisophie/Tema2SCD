@@ -1,0 +1,25 @@
+services:
+  api:
+    container_name: api_container
+    build: .
+    environment:
+      DB_USER: admin
+      DB_PASSWORD: admin
+      DB_NAME: tema2
+      DB_HOST: postgres
+      PORT: 5000
+    ports:
+      - "5000:5000"
+
+  postgres:
+    container_name: postgres_container
+    image: postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: tema2
+    ports:
+      - "5432:5432"
+    # volumes:
+
+  # pgadmin:
