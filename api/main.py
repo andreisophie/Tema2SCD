@@ -2,6 +2,7 @@ from typing import Tuple
 from flask import Flask, request, jsonify
 import psycopg2
 import os
+import datetime
 
 app = Flask(__name__)
 
@@ -121,9 +122,13 @@ def put_cities(id: int):
         return "Wrong request", 400
     try:
         db_conn, db_cursor = connect_db()
+        # Check that country and city exist in database
         db_cursor.execute("SELECT * FROM Tari WHERE id = %s", (body["idTara"], ))
         if not db_cursor.fetchone():
             return "Tara nu exista", 404
+        db_cursor.execute("SELECT * FROM Orase WHERE id = %s", (id, ))
+        if not db_cursor.fetchone():
+            return "Orasul nu exista", 404
         db_cursor.execute("UPDATE Orase SET id = %s, nume_oras = %s, latitudine = %s, longitudine = %s, id_tara = %s WHERE id = %s", (body["id"], body["nume"], body["lat"], body["lon"], body["idTara"], id))
         db_conn.commit()
         db_cursor.close()
@@ -161,6 +166,93 @@ def post_temperatures():
         db_cursor.close()
         db_conn.close()
         return jsonify({"id": id}), 201
+    except Exception as e:
+        return str(e), 409
+    
+@app.route("/api/temperatures", methods=["GET"])
+def det_temperatures():
+    lat = request.args.get("lat")
+    lon = request.args.get("lon")
+    begin_timestamp = request.args.get("from")
+    end_timestamp = request.args.get("until")
+    first_argument = True
+    query = "SELECT Temperaturi.id, valoare, timestamp FROM Temperaturi JOIN Orase ON Temperaturi.id_oras = Orase.id"
+    if lat:
+        query += (" WHERE" if first_argument else " AND") + f" latitudine = {lat}"
+        first_argument = False
+    if lon:
+        query += (" WHERE" if first_argument else " AND") + f" longitudine = {lon}"
+        first_argument = False
+    if begin_timestamp:
+        formatted_begin_timestamp = datetime.datetime.strptime(begin_timestamp, "%Y-%m-%d")
+        query += (" WHERE" if first_argument else " AND") + f" timestamp >= '{formatted_begin_timestamp}'"
+        first_argument = False
+    if end_timestamp:
+        formatted_end_timestamp = datetime.datetime.strptime(end_timestamp, "%Y-%m-%d")
+        query += (" WHERE" if first_argument else " AND") + f" timestamp <= '{formatted_end_timestamp}'"
+        first_argument = False
+    db_conn, db_cursor = connect_db()
+    db_cursor.execute(query)
+    temperatures = db_cursor.fetchall()
+    db_cursor.close()
+    db_conn.close()
+    return jsonify([{"id": temperature[0], "valoare": temperature[1], "timestamp": temperature[2]} for temperature in temperatures]), 200
+
+@app.route("/api/temperatures/cities/<int:id>", methods=["GET"])
+def get_temperatures_by_city(id: int):
+    begin_timestamp = request.args.get("from")
+    end_timestamp = request.args.get("until")
+    query = "SELECT id, valoare, timestamp FROM Temperaturi WHERE id_oras = %s", (id,)
+    if begin_timestamp:
+        formatted_begin_timestamp = datetime.datetime.strptime(begin_timestamp, "%Y-%m-%d")
+        query += f" AND timestamp >= '{formatted_begin_timestamp}'"
+    if end_timestamp:
+        formatted_end_timestamp = datetime.datetime.strptime(end_timestamp, "%Y-%m-%d")
+        query += f" AND timestamp <= '{formatted_end_timestamp}'"
+    db_conn, db_cursor = connect_db()
+    db_cursor.execute(query)
+    temperatures = db_cursor.fetchall()
+    db_cursor.close()
+    db_conn.close()
+    return jsonify([{"id": temperature[0], "valoare": temperature[1], "timestamp": temperature[2]} for temperature in temperatures]), 200
+
+@app.route("/api/temperatures/countries/<int:id>", methods=["GET"])
+def get_temperatures_by_country(id: int):
+    begin_timestamp = request.args.get("from")
+    end_timestamp = request.args.get("until")
+    query = "SELECT Temperaturi.id, valoare, timestamp FROM Temperaturi JOIN Orase ON Temperaturi.id_oras = Orase.id WHERE id_tara = %s", (id,)
+    if begin_timestamp:
+        formatted_begin_timestamp = datetime.datetime.strptime(begin_timestamp, "%Y-%m-%d")
+        query += f" AND timestamp >= '{formatted_begin_timestamp}'"
+    if end_timestamp:
+        formatted_end_timestamp = datetime.datetime.strptime(end_timestamp, "%Y-%m-%d")
+        query += f" AND timestamp <= '{formatted_end_timestamp}'"
+    db_conn, db_cursor = connect_db()
+    db_cursor.execute(query)
+    temperatures = db_cursor.fetchall()
+    db_cursor.close()
+    db_conn.close()
+    return jsonify([{"id": temperature[0], "valoare": temperature[1], "timestamp": temperature[2]} for temperature in temperatures]), 200
+
+@app.route("/api/temperatures/<int:id>", methods=["PUT"])
+def put_temperatures(id: int):
+    body = request.get_json()
+    if not body or "id" not in body or "idOras" not in body or "valoare" not in body or not isinstance(body["valoare"], (int, float)) or id != body["id"]:
+        return "Wrong request", 400
+    try:
+        db_conn, db_cursor = connect_db()
+        # Check that entry and city exist in database
+        db_cursor.execute("SELECT * FROM Temperaturi WHERE id = %s", (id,))
+        if not db_cursor.fetchone():
+            return "Temperatura nu exista", 404
+        db_cursor.execute("SELECT * FROM Orase WHERE id = %s", (body["idOras"], ))
+        if not db_cursor.fetchone():
+            return "Orasul nu exista", 404
+        db_cursor.execute("UPDATE Temperaturi SET id = %s, id_oras = %s, valoare = %s WHERE id = %s", (body["id"], body["idOras"], body["valoare"], id))
+        db_conn.commit()
+        db_cursor.close()
+        db_conn.close()
+        return "", 200
     except Exception as e:
         return str(e), 409
 
