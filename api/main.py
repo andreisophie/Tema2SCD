@@ -202,7 +202,7 @@ def det_temperatures():
 def get_temperatures_by_city(id: int):
     begin_timestamp = request.args.get("from")
     end_timestamp = request.args.get("until")
-    query = "SELECT id, valoare, timestamp FROM Temperaturi WHERE id_oras = %s", (id,)
+    query = f"SELECT id, valoare, timestamp FROM Temperaturi WHERE id_oras = {id}"
     if begin_timestamp:
         formatted_begin_timestamp = datetime.datetime.strptime(begin_timestamp, "%Y-%m-%d")
         query += f" AND timestamp >= '{formatted_begin_timestamp}'"
@@ -220,7 +220,7 @@ def get_temperatures_by_city(id: int):
 def get_temperatures_by_country(id: int):
     begin_timestamp = request.args.get("from")
     end_timestamp = request.args.get("until")
-    query = "SELECT Temperaturi.id, valoare, timestamp FROM Temperaturi JOIN Orase ON Temperaturi.id_oras = Orase.id WHERE id_tara = %s", (id,)
+    query = f"SELECT Temperaturi.id, valoare, timestamp FROM Temperaturi JOIN Orase ON Temperaturi.id_oras = Orase.id WHERE id_tara = {id}"
     if begin_timestamp:
         formatted_begin_timestamp = datetime.datetime.strptime(begin_timestamp, "%Y-%m-%d")
         query += f" AND timestamp >= '{formatted_begin_timestamp}'"
@@ -255,6 +255,18 @@ def put_temperatures(id: int):
         return "", 200
     except Exception as e:
         return str(e), 409
+
+@app.route("/api/temperatures/<int:id>", methods=["DELETE"])
+def delete_temperatures(id: int):
+    try:
+        db_conn, db_cursor = connect_db()
+        db_cursor.execute("DELETE FROM Temperaturi WHERE id = %s", (id,))
+        db_conn.commit()
+        db_cursor.close()
+        db_conn.close()
+        return "", 200
+    except Exception as e:
+        return str(e), 404
 
 if __name__ == '__main__':
     app.run('0.0.0.0', port=os.getenv("PORT"), debug=True)
